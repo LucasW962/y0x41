@@ -30,7 +30,7 @@ type WorldState = {
 	alive_count: number,
 }
 
-export type QueryObject<T...> = {
+export type QueryObject<T... = ...any> = {
 	iter: (self: QueryObject<T...>) -> () -> (Entity?, T...),
 	with: (self: QueryObject<T...>, ...Component<any>) -> QueryObject<T...>,
 	without: (self: QueryObject<T...>, ...Component<any>) -> QueryObject<T...>,
