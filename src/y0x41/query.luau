@@ -204,10 +204,11 @@ end
 QueryMeta.__iter = QueryMeta.iter
 
 const function new(state: WorldView, ids: { ComponentId }): QueryState
-	const required = table.clone(ids)
+	const frozenIds = table.freeze(table.clone(ids)) :: { ComponentId }
+	const required = table.clone(frozenIds)
 	local query: QueryState = {
 		_state = state,
-		_select = ids,
+		_select = frozenIds,
 		_required = required,
 		_forbidden = nil,
 		_cache_version = nil,
