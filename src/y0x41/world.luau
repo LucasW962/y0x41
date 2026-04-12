@@ -41,7 +41,7 @@ export type QueryObject<T...> = {
 export type World = {
 	_state: WorldState,
 
-	entity: (self: World, explicit: number?) -> Entity<unknown>,
+	entity: <T>(self: World, explicit: number?) -> T,
 	component: <T>(self: World) -> Component<T>,
 
 	add: <T>(self: World, entity: Entity<unknown> | number, component: Component<T>) -> (),
@@ -367,12 +367,12 @@ const function query_impl<T...>(state: WorldState, ids: { ComponentId }): QueryO
 	return (Query.new(state, ids) :: unknown) :: QueryObject<T...>
 end
 
-const function world_entity(self: World, explicit: number?): Entity<unknown>
+const function world_entity<T>(self: World, explicit: number?): T
 	const state = self._state
 	if explicit == nil then
-		return (entity_auto(state) :: unknown) :: Entity<unknown>
+		return (entity_auto(state) :: unknown) :: T
 	end
-	return (entity_explicit(state, explicit) :: unknown) :: Entity<unknown>
+	return (entity_explicit(state, explicit) :: unknown) :: T
 end
 
 const function world_component<T>(self: World): Component<T>

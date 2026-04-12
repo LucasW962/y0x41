@@ -17,7 +17,7 @@ local function run_benchmarks()
 
 	benchmarker("spawn entities", N, function()
 		for i = 1, N do
-			ids[i] = (world:entity() :: unknown) :: number
+			ids[i] = world:entity<<number>>()
 		end
 	end)
 
