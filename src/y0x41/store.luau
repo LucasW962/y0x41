@@ -2,7 +2,7 @@
 --!native
 --!optimize 2
 
-local Id = require("./id")
+const Id = require("./id")
 
 export type Store<T = unknown> = {
 	dense: { number },
@@ -21,8 +21,8 @@ const function new<T>(): Store<T>
 end
 
 const function index_of<T>(store: Store<T>, entity: number): number?
-	local id = Id.entity_id(entity)
-	local dense = store.sparse[id]
+	const id = Id.entity_id(entity)
+	const dense = store.sparse[id]
 	if dense == nil then
 		return nil
 	end
@@ -39,7 +39,7 @@ const function has<T>(store: Store<T>, entity: number): boolean
 end
 
 const function get<T>(store: Store<T>, entity: number): T?
-	local dense = index_of(store, entity)
+	const dense = index_of(store, entity)
 	if dense == nil then
 		return nil
 	end
@@ -47,13 +47,13 @@ const function get<T>(store: Store<T>, entity: number): T?
 end
 
 const function set<T>(store: Store<T>, entity: number, value: T): boolean
-	local dense = index_of(store, entity)
+	const dense = index_of(store, entity)
 	if dense ~= nil then
 		store.values[dense] = value
 		return false
 	end
 
-	local next_index = store.size + 1
+	const next_index = store.size + 1
 	store.size = next_index
 	store.dense[next_index] = entity
 	store.values[next_index] = value
@@ -62,15 +62,15 @@ const function set<T>(store: Store<T>, entity: number, value: T): boolean
 end
 
 const function remove<T>(store: Store<T>, entity: number): boolean
-	local dense = index_of(store, entity)
+	const dense = index_of(store, entity)
 	if dense == nil then
 		return false
 	end
 
-	local id = Id.entity_id(entity)
-	local last = store.size
+	const id = Id.entity_id(entity)
+	const last = store.size
 	if dense ~= last then
-		local moved = store.dense[last]
+		const moved = store.dense[last]
 		store.dense[dense] = moved
 		store.values[dense] = store.values[last]
 		if moved ~= nil then

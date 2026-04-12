@@ -2,15 +2,11 @@
 --!native
 --!optimize 2
 
-local Id = require("@self/id")
-local World = require("@self/world")
+const Id = require("@self/id")
+const World = require("@self/world")
 
 return table.freeze({
 	world = World.new,
-	World = {
-		new = World.new,
-	},
-
 	pair = Id.pair,
 	is_pair = Id.is_pair,
 	pair_first = Id.pair_first,

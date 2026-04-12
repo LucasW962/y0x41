@@ -2,9 +2,10 @@
 --!native
 --!optimize 2
 
-local Id = require("./id")
-local Store = require("./store")
-local Query = require("./query")
+const Id = require("./id")
+const Log = require("./log")
+const Store = require("./store")
+const Query = require("./query")
 
 export type map<K = string, V = unknown> = { [K]: V }
 export type set<T = unknown> = map<T, true>
@@ -38,6 +39,8 @@ export type QueryObject<T...> = {
 }
 
 export type World = {
+	_state: WorldState,
+
 	entity: (self: World, explicit: number?) -> Entity<unknown>,
 	component: <T>(self: World) -> Component<T>,
 
@@ -47,7 +50,7 @@ export type World = {
 	clear: (self: World, entity: Entity<unknown> | number) -> (),
 	delete: (self: World, entity: Entity<unknown> | number) -> (),
 
-	get: <T...>(self: World, entity: Entity<unknown> | number, ...Component<unknown>) -> T...,
+	get: (self: World, entity: Entity<unknown> | number, ...Component<unknown>) -> ...unknown,
 	has: (self: World, entity: Entity<unknown> | number, ...Component<unknown>) -> boolean,
 	contains: (self: World, entity: Entity<unknown> | number) -> boolean,
 	exists: (self: World, entity: Entity<unknown> | number) -> boolean,
@@ -63,6 +66,10 @@ const function to_component_id(component: Component<unknown>): ComponentId
 	return (component :: unknown) :: ComponentId
 end
 
+const function to_component_id_t<T>(component: Component<T>): ComponentId
+	return to_component_id((component :: unknown) :: Component<unknown>)
+end
+
 const function components_to_ids(raw_components: { Component<unknown> }): { ComponentId }
 	local out = table.create(#raw_components) :: { ComponentId }
 	for i = 1, #raw_components do
@@ -76,7 +83,7 @@ const function mark_structural(state: WorldState)
 end
 
 const function ensure_signature(state: WorldState, id: number): Signature
-	local signature = state.signatures[id]
+	const signature = state.signatures[id]
 	if signature ~= nil then
 		return signature
 	end
@@ -87,7 +94,7 @@ const function ensure_signature(state: WorldState, id: number): Signature
 end
 
 const function ensure_store(state: WorldState, component_id: ComponentId): StoreState
-	local store = state.stores[component_id]
+	const store = state.stores[component_id]
 	if store ~= nil then
 		return store
 	end
@@ -98,8 +105,8 @@ const function ensure_store(state: WorldState, component_id: ComponentId): Store
 end
 
 const function contains_impl(state: WorldState, entity: number): boolean
-	local id = Id.entity_id(entity)
-	local dense = state.dense_lookup[id]
+	const id = Id.entity_id(entity)
+	const dense = state.dense_lookup[id]
 	if dense == nil then
 		return false
 	end
@@ -111,8 +118,8 @@ const function exists_impl(state: WorldState, entity: number): boolean
 end
 
 const function dense_insert(state: WorldState, entity: number)
-	local dense = #state.dense_entities + 1
-	local id = Id.entity_id(entity)
+	const dense = #state.dense_entities + 1
+	const id = Id.entity_id(entity)
 	state.dense_entities[dense] = entity
 	state.dense_lookup[id] = dense
 	ensure_signature(state, id)
@@ -121,7 +128,7 @@ end
 
 const function entity_auto(state: WorldState): number
 	local id: number
-	local free_count = #state.free_ids
+	const free_count = #state.free_ids
 	if free_count > 0 then
 		id = state.free_ids[free_count]
 		state.free_ids[free_count] = nil
@@ -130,30 +137,30 @@ const function entity_auto(state: WorldState): number
 		id = state.next_entity_id
 	end
 
-	local generation = state.generations[id] or 0
+	const generation = state.generations[id] or 0
 	state.generations[id] = generation
 
-	local entity = Id.entity_combine(id, generation)
+	const entity = Id.entity_combine(id, generation)
 	dense_insert(state, entity)
 	return entity
 end
 
 const function entity_explicit(state: WorldState, explicit: number): number
-	local id = Id.entity_id(explicit)
-	local generation = Id.entity_generation(explicit)
+	const id = Id.entity_id(explicit)
+	const generation = Id.entity_generation(explicit)
 
-	local dense = state.dense_lookup[id]
+	const dense = state.dense_lookup[id]
 	if dense ~= nil then
-		local live = state.dense_entities[dense]
+		const live = state.dense_entities[dense]
 		if live ~= explicit then
-			error("entity id already exists with a different generation")
+			Log.trace("entity id already exists with a different generation")
 		end
 		return explicit
 	end
 
-	local known_generation = state.generations[id]
+	const known_generation = state.generations[id]
 	if known_generation ~= nil and known_generation ~= generation then
-		error("explicit entity generation does not match world generation")
+		Log.trace("explicit entity generation does not match world generation")
 	end
 	state.generations[id] = generation
 
@@ -178,13 +185,13 @@ const function add_impl(state: WorldState, entity: number, component_id: Compone
 		return
 	end
 
-	local id = Id.entity_id(entity)
-	local signature = ensure_signature(state, id)
+	const id = Id.entity_id(entity)
+	const signature = ensure_signature(state, id)
 	if signature[component_id] then
 		return
 	end
 
-	local store = ensure_store(state, component_id)
+	const store = ensure_store(state, component_id)
 	Store.set(store, entity, true)
 	signature[component_id] = true
 	mark_structural(state)
@@ -195,11 +202,11 @@ const function set_impl(state: WorldState, entity: number, component_id: Compone
 		return
 	end
 
-	local id = Id.entity_id(entity)
-	local signature = ensure_signature(state, id)
-	local inserted = not signature[component_id]
+	const id = Id.entity_id(entity)
+	const signature = ensure_signature(state, id)
+	const inserted = not signature[component_id]
 
-	local store = ensure_store(state, component_id)
+	const store = ensure_store(state, component_id)
 	Store.set(store, entity, value)
 	if inserted then
 		signature[component_id] = true
@@ -212,13 +219,13 @@ const function remove_impl(state: WorldState, entity: number, component_id: Comp
 		return
 	end
 
-	local id = Id.entity_id(entity)
-	local signature = state.signatures[id]
+	const id = Id.entity_id(entity)
+	const signature = state.signatures[id]
 	if signature == nil or not signature[component_id] then
 		return
 	end
 
-	local store = state.stores[component_id]
+	const store = state.stores[component_id]
 	if store ~= nil then
 		Store.remove(store, entity)
 	end
@@ -232,13 +239,13 @@ const function clear_impl(state: WorldState, entity: number)
 		return
 	end
 
-	local id = Id.entity_id(entity)
-	local signature = state.signatures[id]
+	const id = Id.entity_id(entity)
+	const signature = state.signatures[id]
 	if signature == nil then
 		return
 	end
 
-	local keys = table.create(8) :: { ComponentId }
+	const keys = table.create(8) :: { ComponentId }
 	for component_id in signature do
 		table.insert(keys, component_id)
 	end
@@ -248,7 +255,7 @@ const function clear_impl(state: WorldState, entity: number)
 	end
 
 	for _, component_id in keys do
-		local store = state.stores[component_id]
+		const store = state.stores[component_id]
 		if store ~= nil then
 			Store.remove(store, entity)
 		end
@@ -265,11 +272,11 @@ const function delete_impl(state: WorldState, entity: number)
 
 	clear_impl(state, entity)
 
-	local id = Id.entity_id(entity)
-	local dense = state.dense_lookup[id] :: number
-	local last = #state.dense_entities
+	const id = Id.entity_id(entity)
+	const dense = state.dense_lookup[id] :: number
+	const last = #state.dense_entities
 	if dense ~= last then
-		local moved = state.dense_entities[last]
+		const moved = state.dense_entities[last]
 		state.dense_entities[dense] = moved
 		if moved ~= nil then
 			state.dense_lookup[Id.entity_id(moved)] = dense
@@ -291,7 +298,7 @@ const function delete_impl(state: WorldState, entity: number)
 end
 
 const function value_for(state: WorldState, entity: number, component_id: ComponentId): unknown
-	local store = state.stores[component_id]
+	const store = state.stores[component_id]
 	if store == nil then
 		return nil
 	end
@@ -303,52 +310,17 @@ const function get_impl(state: WorldState, entity: number, ids: { ComponentId })
 		return nil
 	end
 
-	local n = #ids
+	const n = #ids
 	if n == 0 then
 		return
 	end
 
-	local id0 = ids[1]
-	if n == 1 then
-		return value_for(state, entity, id0)
+	const values = table.create(n) :: { unknown }
+	for i = 1, n do
+		values[i] = value_for(state, entity, ids[i])
 	end
 
-	local id1 = ids[2]
-	if n == 2 then
-		return value_for(state, entity, id0), value_for(state, entity, id1)
-	end
-
-	local id2 = ids[3]
-	if n == 3 then
-		return value_for(state, entity, id0), value_for(state, entity, id1), value_for(state, entity, id2)
-	end
-
-	local id3 = ids[4]
-	if n == 4 then
-		return value_for(state, entity, id0), value_for(state, entity, id1), value_for(state, entity, id2), value_for(state, entity, id3)
-	end
-
-	local id4 = ids[5]
-	if n == 5 then
-		return value_for(state, entity, id0), value_for(state, entity, id1), value_for(state, entity, id2), value_for(state, entity, id3), value_for(state, entity, id4)
-	end
-
-	local id5 = ids[6]
-	if n == 6 then
-		return value_for(state, entity, id0), value_for(state, entity, id1), value_for(state, entity, id2), value_for(state, entity, id3), value_for(state, entity, id4), value_for(state, entity, id5)
-	end
-
-	local id6 = ids[7]
-	if n == 7 then
-		return value_for(state, entity, id0), value_for(state, entity, id1), value_for(state, entity, id2), value_for(state, entity, id3), value_for(state, entity, id4), value_for(state, entity, id5), value_for(state, entity, id6)
-	end
-
-	local id7 = ids[8]
-	if n == 8 then
-		return value_for(state, entity, id0), value_for(state, entity, id1), value_for(state, entity, id2), value_for(state, entity, id3), value_for(state, entity, id4), value_for(state, entity, id5), value_for(state, entity, id6), value_for(state, entity, id7)
-	end
-
-	error("world:get currently supports up to 8 components")
+	return unpack(values, 1, n)
 end
 
 const function has_impl(state: WorldState, entity: number, ids: { ComponentId }): boolean
@@ -356,7 +328,7 @@ const function has_impl(state: WorldState, entity: number, ids: { ComponentId })
 		return false
 	end
 
-	local signature = state.signatures[Id.entity_id(entity)]
+	const signature = state.signatures[Id.entity_id(entity)]
 	if signature == nil then
 		return false
 	end
@@ -371,7 +343,7 @@ const function has_impl(state: WorldState, entity: number, ids: { ComponentId })
 end
 
 const function each_impl(state: WorldState, component_id: ComponentId): () -> Entity<unknown>?
-	local store = state.stores[component_id]
+	const store = state.stores[component_id]
 	if store == nil then
 		return function(): Entity<unknown>?
 			return nil
@@ -381,7 +353,7 @@ const function each_impl(state: WorldState, component_id: ComponentId): () -> En
 	local row = store.size
 	return function(): Entity<unknown>?
 		while row > 0 do
-			local entity = store.dense[row]
+			const entity = store.dense[row]
 			row -= 1
 			if entity ~= nil and contains_impl(state, entity) then
 				return (entity :: unknown) :: Entity<unknown>
@@ -395,8 +367,69 @@ const function query_impl<T...>(state: WorldState, ids: { ComponentId }): QueryO
 	return (Query.new(state, ids) :: unknown) :: QueryObject<T...>
 end
 
+const function world_entity(self: World, explicit: number?): Entity<unknown>
+	const state = self._state
+	if explicit == nil then
+		return (entity_auto(state) :: unknown) :: Entity<unknown>
+	end
+	return (entity_explicit(state, explicit) :: unknown) :: Entity<unknown>
+end
+
+const function world_component<T>(self: World): Component<T>
+	const state = self._state
+	state.next_component_id += 1
+	return (state.next_component_id :: unknown) :: Component<T>
+end
+
+const function world_add<T>(self: World, entity: Entity<unknown> | number, component: Component<T>)
+	add_impl(self._state, to_entity_number(entity), to_component_id_t(component))
+end
+
+const function world_set<T>(self: World, entity: Entity<unknown> | number, component: Component<T>, value: T)
+	set_impl(self._state, to_entity_number(entity), to_component_id_t(component), value)
+end
+
+const function world_remove<T>(self: World, entity: Entity<unknown> | number, component: Component<T>)
+	remove_impl(self._state, to_entity_number(entity), to_component_id_t(component))
+end
+
+const function world_clear(self: World, entity: Entity<unknown> | number)
+	clear_impl(self._state, to_entity_number(entity))
+end
+
+const function world_delete(self: World, entity: Entity<unknown> | number)
+	delete_impl(self._state, to_entity_number(entity))
+end
+
+const function world_get(self: World, entity: Entity<unknown> | number, ...: Component<unknown>): ...unknown
+	const ids = components_to_ids({ ... })
+	return get_impl(self._state, to_entity_number(entity), ids)
+end
+
+const function world_has(self: World, entity: Entity<unknown> | number, ...: Component<unknown>): boolean
+	const ids = components_to_ids({ ... })
+	return has_impl(self._state, to_entity_number(entity), ids)
+end
+
+const function world_contains(self: World, entity: Entity<unknown> | number): boolean
+	return contains_impl(self._state, to_entity_number(entity))
+end
+
+const function world_exists(self: World, entity: Entity<unknown> | number): boolean
+	return exists_impl(self._state, to_entity_number(entity))
+end
+
+const function world_each<T>(self: World, component: Component<T>): () -> Entity<unknown>?
+	return each_impl(self._state, to_component_id_t(component))
+end
+
+const function world_query<T...>(self: World, ...: Component<unknown>): QueryObject<T...>
+	const ids = components_to_ids({ ... })
+	return query_impl<<T...>>(self._state, ids)
+end
+
 const function new(): World
-	local state: WorldState = {
+	const state: WorldState = {
 		version = 0,
 		next_entity_id = 0,
 		next_component_id = 0,
@@ -409,68 +442,22 @@ const function new(): World
 		alive_count = 0,
 	}
 
-	local api = {} :: World
-
-	function api.entity(self: World, explicit: number?): Entity<unknown>
-		if explicit == nil then
-			return (entity_auto(state) :: unknown) :: Entity<unknown>
-		end
-		return (entity_explicit(state, explicit) :: unknown) :: Entity<unknown>
-	end
-
-	function api.component<T>(self: World): Component<T>
-		state.next_component_id += 1
-		return (state.next_component_id :: unknown) :: Component<T>
-	end
-
-	function api.add<T>(self: World, entity: Entity<unknown> | number, component: Component<T>)
-		add_impl(state, to_entity_number(entity), to_component_id((component :: unknown) :: Component<unknown>))
-	end
-
-	function api.set<T>(self: World, entity: Entity<unknown> | number, component: Component<T>, value: T)
-		set_impl(state, to_entity_number(entity), to_component_id((component :: unknown) :: Component<unknown>), value)
-	end
-
-	function api.remove<T>(self: World, entity: Entity<unknown> | number, component: Component<T>)
-		remove_impl(state, to_entity_number(entity), to_component_id((component :: unknown) :: Component<unknown>))
-	end
-
-	function api.clear(self: World, entity: Entity<unknown> | number)
-		clear_impl(state, to_entity_number(entity))
-	end
-
-	function api.delete(self: World, entity: Entity<unknown> | number)
-		delete_impl(state, to_entity_number(entity))
-	end
-
-	function api.get<T...>(self: World, entity: Entity<unknown> | number, ...: Component<unknown>): T...
-		local ids = components_to_ids({ ... })
-		return (get_impl(state, to_entity_number(entity), ids) :: any)
-	end
-
-	function api.has(self: World, entity: Entity<unknown> | number, ...: Component<unknown>): boolean
-		local ids = components_to_ids({ ... })
-		return has_impl(state, to_entity_number(entity), ids)
-	end
-
-	function api.contains(self: World, entity: Entity<unknown> | number): boolean
-		return contains_impl(state, to_entity_number(entity))
-	end
-
-	function api.exists(self: World, entity: Entity<unknown> | number): boolean
-		return exists_impl(state, to_entity_number(entity))
-	end
-
-	function api.each<T>(self: World, component: Component<T>): () -> Entity<unknown>?
-		return each_impl(state, to_component_id((component :: unknown) :: Component<unknown>))
-	end
-
-	function api.query<T...>(self: World, ...: Component<unknown>): QueryObject<T...>
-		local ids = components_to_ids({ ... })
-		return query_impl<<T...>>(state, ids)
-	end
-
-	return api
+	return {
+		_state = state,
+		entity = world_entity,
+		component = world_component,
+		add = world_add,
+		set = world_set,
+		remove = world_remove,
+		clear = world_clear,
+		delete = world_delete,
+		get = world_get,
+		has = world_has,
+		contains = world_contains,
+		exists = world_exists,
+		each = world_each,
+		query = world_query,
+	}
 end
 
 return table.freeze({

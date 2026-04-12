@@ -1,3 +1,5 @@
-local y0x41 = require("../src/y0x41")
-
-const world = y0x41.World.new()
+--!strict
+--!native
+--!optimize 2
+local benchmarks = require("./benchmarks")
+benchmarks.run()

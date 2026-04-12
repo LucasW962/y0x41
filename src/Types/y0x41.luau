@@ -34,7 +34,6 @@ type function fn_componentValuesUnion(sig: type)
 	return acc or types.never
 end
 
--- Builds a key union from a schema table type.
 type function fn_schemaKeys(schema: type)
 	if schema.tag ~= "table" then
 		return types.never
@@ -54,7 +53,6 @@ type function fn_schemaKeys(schema: type)
 	end
 end
 
--- Builds a record from a schema table and a key pack.
 type function fn_selectShape(schema: type, keysSig: type)
 	local keys = keysSig:parameters().head
 	assert(keys)
@@ -70,7 +68,6 @@ type function fn_selectShape(schema: type, keysSig: type)
 	return out
 end
 
--- Builds a union of selected value types from a key pack.
 type function fn_selectValueUnion(schema: type, keysSig: type)
 	local keys = keysSig:parameters().head
 	assert(keys)
@@ -86,7 +83,6 @@ type function fn_selectValueUnion(schema: type, keysSig: type)
 	return acc or types.never
 end
 
--- Builds a record by zipping key pack + value pack.
 type function fn_zipRecord(keysSig: type, valsSig: type)
 	local keys = keysSig:parameters().head
 	local vals = valsSig:parameters().head
