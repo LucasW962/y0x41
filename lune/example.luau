@@ -14,9 +14,9 @@ world:set(entity, Health, 100)
 world:set(entity, Name, "Boss")
 
 local position, health, name = world:get(entity, Position, Health, Name)
-local _positionCheck: Vector3 = position
-local _healthCheck: number = health
-local _nameCheck: string = name
+local _positionCheck = position
+local _healthCheck = health
+local _nameCheck = name
 
 for aliveEntity, qPosition, qHealth in world:query(Position, Health):iter() do
 	local _aliveEntityCheck = aliveEntity

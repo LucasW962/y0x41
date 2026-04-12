@@ -6,7 +6,6 @@ const Id = require("./id")
 const Log = require("./log")
 const Store = require("./store")
 const Query = require("./query")
-const Types = require("../Types/y0x41")
 
 export type map<K = string, V = unknown> = { [K]: V }
 export type set<T = unknown> = map<T, true>
@@ -14,7 +13,7 @@ export type set<T = unknown> = map<T, true>
 export type Entity<T = nil> = Id.Entity<T>
 export type Component<T = unknown> = Id.Component<T>
 
-type ComponentValue<C> = Types.ComponentValue<C>
+type ComponentValue<C> = index<C, "__T">
 
 type ComponentId = number | integer
 type Signature = set<ComponentId>
@@ -487,10 +486,13 @@ const function world_each<T>(self: World, component: Component<T>): () -> Entity
 	return each_impl(self._state, to_component_id_t(component))
 end
 
-const function world_query<T...>(self: World, ...: Component<any>): QueryObject<T...>
-	const ids = components_to_ids({ ... })
+const function world_query<T...>(self: World, ...: T...): QueryObject<T...>
+	local castedVaradic = {...} :: {Component<any>}
+	const ids = components_to_ids(castedVaradic)
 	return query_impl<<T...>>(self._state, ids)
 end
+
+
 
 const function new(): World
 	const state: WorldState = {
@@ -523,6 +525,7 @@ const function new(): World
 		query = (world_query :: unknown) :: QueryFn,
 	}
 end
+
 
 return table.freeze({
 	new = new,
