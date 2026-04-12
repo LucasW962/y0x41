@@ -7,9 +7,10 @@ local benchmarker = require("./benchmarker")
 
 local function run_benchmarks()
 	local world = y0x41.world()
-	local Position = world:component()
-	local Velocity = world:component()
-	local Health = world:component()
+	local Position = world:component<<{x:number,y:number}>>()
+	local Velocity = world:component<<{x:number,y:number}>>()
+	local Health = world:component<<number>>()
+    
 
 	local N = 50_000
 	local ids: { number } = (table.create(N) :: unknown) :: { number }

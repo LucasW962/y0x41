@@ -32,8 +32,8 @@ type WorldState = {
 
 export type QueryObject<T...> = {
 	iter: (self: QueryObject<T...>) -> () -> (Entity?, T...),
-	with: (self: QueryObject<T...>, ...Component<unknown>) -> QueryObject<T...>,
-	without: (self: QueryObject<T...>, ...Component<unknown>) -> QueryObject<T...>,
+	with: (self: QueryObject<T...>, ...Component<any>) -> QueryObject<T...>,
+	without: (self: QueryObject<T...>, ...Component<any>) -> QueryObject<T...>,
 	has: (self: QueryObject<T...>, entity: Entity<unknown> | number) -> boolean,
 	__iter: (self: QueryObject<T...>) -> () -> (Entity?, T...),
 }
@@ -50,27 +50,27 @@ export type World = {
 	clear: (self: World, entity: Entity<unknown> | number) -> (),
 	delete: (self: World, entity: Entity<unknown> | number) -> (),
 
-	get: (self: World, entity: Entity<unknown> | number, ...Component<unknown>) -> ...unknown,
-	has: (self: World, entity: Entity<unknown> | number, ...Component<unknown>) -> boolean,
+	get: (self: World, entity: Entity<unknown> | number, ...Component<any>) -> ...unknown,
+	has: (self: World, entity: Entity<unknown> | number, ...Component<any>) -> boolean,
 	contains: (self: World, entity: Entity<unknown> | number) -> boolean,
 	exists: (self: World, entity: Entity<unknown> | number) -> boolean,
 	each: <T>(self: World, component: Component<T>) -> () -> Entity<unknown>?,
-	query: <T...>(self: World, ...Component<unknown>) -> QueryObject<T...>,
+	query: <T...>(self: World, ...Component<any>) -> QueryObject<T...>,
 }
 
 const function to_entity_number(entity: Entity<unknown> | number): number
 	return (entity :: unknown) :: number
 end
 
-const function to_component_id(component: Component<unknown>): ComponentId
+const function to_component_id(component: Component<any>): ComponentId
 	return (component :: unknown) :: ComponentId
 end
 
 const function to_component_id_t<T>(component: Component<T>): ComponentId
-	return to_component_id((component :: unknown) :: Component<unknown>)
+	return to_component_id((component :: unknown) :: Component<any>)
 end
 
-const function components_to_ids(raw_components: { Component<unknown> }): { ComponentId }
+const function components_to_ids(raw_components: { Component<any> }): { ComponentId }
 	local out = table.create(#raw_components) :: { ComponentId }
 	for i = 1, #raw_components do
 		out[i] = to_component_id(raw_components[i])
@@ -401,12 +401,12 @@ const function world_delete(self: World, entity: Entity<unknown> | number)
 	delete_impl(self._state, to_entity_number(entity))
 end
 
-const function world_get(self: World, entity: Entity<unknown> | number, ...: Component<unknown>): ...unknown
+const function world_get(self: World, entity: Entity<unknown> | number, ...: Component<any>): ...unknown
 	const ids = components_to_ids({ ... })
 	return get_impl(self._state, to_entity_number(entity), ids)
 end
 
-const function world_has(self: World, entity: Entity<unknown> | number, ...: Component<unknown>): boolean
+const function world_has(self: World, entity: Entity<unknown> | number, ...: Component<any>): boolean
 	const ids = components_to_ids({ ... })
 	return has_impl(self._state, to_entity_number(entity), ids)
 end
@@ -423,7 +423,7 @@ const function world_each<T>(self: World, component: Component<T>): () -> Entity
 	return each_impl(self._state, to_component_id_t(component))
 end
 
-const function world_query<T...>(self: World, ...: Component<unknown>): QueryObject<T...>
+const function world_query<T...>(self: World, ...: Component<any>): QueryObject<T...>
 	const ids = components_to_ids({ ... })
 	return query_impl<<T...>>(self._state, ids)
 end

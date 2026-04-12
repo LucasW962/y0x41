@@ -15,8 +15,8 @@ const I64_PAIR_MARK = if HAS_INTEGER64 then integer.fromstring("0x40000000000000
 const I64_SHIFT_32 = if HAS_INTEGER64 then integer.create(32) else nil
 const I64_COMPONENT_MASK = if HAS_INTEGER64 then integer.fromstring("0x0000000000FFFFFF") else nil
 
-export type Entity<T = nil> = { __T: T }
-export type Component<T = unknown> = { __T: T }
+export type Entity<T = nil> = { read __T: T }
+export type Component<T = unknown> = { read __T: T }
 export type Pair<First = unknown, Second = unknown> = Component<{ first: First, second: Second }>
 
 type EntityHandle = number
