@@ -305,19 +305,25 @@ const function value_for(state: WorldState, entity: number, component_id: Compon
 	return Store.get(store, entity)
 end
 
-const function get_impl(state: WorldState, entity: number, ids: { ComponentId }): ...unknown
+const function get_impl(state: WorldState, entity: number, ...: Component<any>): ...unknown
 	if not contains_impl(state, entity) then
 		return nil
 	end
 
-	const n = #ids
+	const n = select("#", ...)
 	if n == 0 then
 		return
 	end
 
+	if n == 1 then
+		local component = (select(1, ...) :: unknown) :: Component<any>
+		return value_for(state, entity, to_component_id(component))
+	end
+
 	const values = table.create(n) :: { unknown }
 	for i = 1, n do
-		values[i] = value_for(state, entity, ids[i])
+		local component = (select(i, ...) :: unknown) :: Component<any>
+		values[i] = value_for(state, entity, to_component_id(component))
 	end
 
 	return unpack(values, 1, n)
@@ -402,8 +408,7 @@ const function world_delete(self: World, entity: Entity<unknown> | number)
 end
 
 const function world_get(self: World, entity: Entity<unknown> | number, ...: Component<any>): ...unknown
-	const ids = components_to_ids({ ... })
-	return get_impl(self._state, to_entity_number(entity), ids)
+	return get_impl(self._state, to_entity_number(entity), ...)
 end
 
 const function world_has(self: World, entity: Entity<unknown> | number, ...: Component<any>): boolean
