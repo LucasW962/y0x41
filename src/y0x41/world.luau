@@ -6,12 +6,15 @@ const Id = require("./id")
 const Log = require("./log")
 const Store = require("./store")
 const Query = require("./query")
+const Types = require("../Types/y0x41")
 
 export type map<K = string, V = unknown> = { [K]: V }
 export type set<T = unknown> = map<T, true>
 
 export type Entity<T = nil> = Id.Entity<T>
 export type Component<T = unknown> = Id.Component<T>
+
+type ComponentValue<C> = Types.ComponentValue<C>
 
 type ComponentId = number | integer
 type Signature = set<ComponentId>
@@ -38,6 +41,62 @@ export type QueryObject<T... = ...any> = {
 	__iter: (self: QueryObject<T...>) -> () -> (Entity?, T...),
 }
 
+type GetFn =
+	((self: World, entity: Entity<unknown> | number) -> ())
+	& (<T1>(self: World, entity: Entity<unknown> | number, c1: Component<T1>) -> ComponentValue<Component<T1>>)
+	& (<T1, T2>(
+		self: World,
+		entity: Entity<unknown> | number,
+		c1: Component<T1>,
+		c2: Component<T2>
+	) -> (ComponentValue<Component<T1>>, ComponentValue<Component<T2>>))
+	& (<C1, C2, C3>(
+		self: World,
+		entity: Entity<unknown> | number,
+		c1: Component<C1>,
+		c2: Component<C2>,
+		c3: Component<C3>
+	) -> (ComponentValue<Component<C1>>, ComponentValue<Component<C2>>, ComponentValue<Component<C3>>))
+	& (<C1, C2, C3, C4>(
+		self: World,
+		entity: Entity<unknown> | number,
+		c1: Component<C1>,
+		c2: Component<C2>,
+		c3: Component<C3>,
+		c4: Component<C4>
+	) -> (
+		ComponentValue<Component<C1>>,
+		ComponentValue<Component<C2>>,
+		ComponentValue<Component<C3>>,
+		ComponentValue<Component<C4>>
+	))
+
+type QueryFn =
+	(<T1>(self: World, c1: Component<T1>) -> QueryObject<ComponentValue<Component<T1>>>)
+	& (<T1, T2>(
+		self: World,
+		c1: Component<T1>,
+		c2: Component<T2>
+	) -> QueryObject<ComponentValue<Component<T1>>, ComponentValue<Component<T2>>>)
+	& (<C1, C2, C3>(
+		self: World,
+		c1: Component<C1>,
+		c2: Component<C2>,
+		c3: Component<C3>
+	) -> QueryObject<ComponentValue<Component<C1>>, ComponentValue<Component<C2>>, ComponentValue<Component<C3>>>)
+	& (<C1, C2, C3, C4>(
+		self: World,
+		c1: Component<C1>,
+		c2: Component<C2>,
+		c3: Component<C3>,
+		c4: Component<C4>
+	) -> QueryObject<
+		ComponentValue<Component<C1>>,
+		ComponentValue<Component<C2>>,
+		ComponentValue<Component<C3>>,
+		ComponentValue<Component<C4>>
+	>)
+
 export type World = {
 	_state: WorldState,
 
@@ -50,12 +109,12 @@ export type World = {
 	clear: (self: World, entity: Entity<unknown> | number) -> (),
 	delete: (self: World, entity: Entity<unknown> | number) -> (),
 
-	get: (self: World, entity: Entity<unknown> | number, ...Component<any>) -> ...unknown,
+	get: GetFn,
 	has: (self: World, entity: Entity<unknown> | number, ...Component<any>) -> boolean,
 	contains: (self: World, entity: Entity<unknown> | number) -> boolean,
 	exists: (self: World, entity: Entity<unknown> | number) -> boolean,
 	each: <T>(self: World, component: Component<T>) -> () -> Entity<unknown>?,
-	query: <T...>(self: World, ...Component<any>) -> QueryObject<T...>,
+	query: QueryFn,
 }
 
 const function to_entity_number(entity: Entity<unknown> | number): number
@@ -456,12 +515,12 @@ const function new(): World
 		remove = world_remove,
 		clear = world_clear,
 		delete = world_delete,
-		get = world_get,
+		get = (world_get :: unknown) :: GetFn,
 		has = world_has,
 		contains = world_contains,
 		exists = world_exists,
 		each = world_each,
-		query = world_query,
+		query = (world_query :: unknown) :: QueryFn,
 	}
 end
 
