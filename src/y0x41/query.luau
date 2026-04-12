@@ -163,8 +163,15 @@ function QueryMeta.iter(self: QueryState): () -> (number?, ...unknown)
 end
 
 function QueryMeta.with(self: QueryState, ...: ComponentId): QueryState
+	const forbidden = self._forbidden
 	for _, component_id in { ... } do
 		push_unique(self._required, component_id)
+		if forbidden ~= nil then
+			local idx = table.find(forbidden, component_id)
+			if idx ~= nil then
+				table.remove(forbidden, idx)
+			end
+		end
 	end
 	self._cache_version = nil
 	self._cache_pivot_dense = nil
@@ -179,7 +186,9 @@ function QueryMeta.without(self: QueryState, ...: ComponentId): QueryState
 
 	const forbidden = self._forbidden :: { ComponentId }
 	for _, component_id in { ... } do
-		push_unique(forbidden, component_id)
+		if table.find(self._required, component_id) == nil then
+			push_unique(forbidden, component_id)
+		end
 	end
 
 	self._cache_version = nil

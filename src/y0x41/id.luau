@@ -78,7 +78,6 @@ end
 
 const function is_pair<T>(id: Component<T> | number): boolean
 	const raw = id :: unknown
-
 	if HAS_INTEGER64 and typeof(raw) == "integer" then
 		const mark = I64_PAIR_MARK
 		if mark ~= nil then
