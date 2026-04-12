@@ -2,8 +2,8 @@
 --!native
 --!optimize 2
 
-local Id = require("@self/id")
-local Store = require("@self/store")
+local Id = require("./id")
+local Store = require("./store")
 
 type ComponentId = number | integer
 type Signature = { [ComponentId]: true }

@@ -2,7 +2,7 @@
 --!native
 --!optimize 2
 
-local Id = require("@self/id")
+local Id = require("./id")
 
 export type Store<T = unknown> = {
 	dense: { number },

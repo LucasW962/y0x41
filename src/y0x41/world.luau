@@ -2,9 +2,9 @@
 --!native
 --!optimize 2
 
-local Id = require("@self/id")
-local Store = require("@self/store")
-local Query = require("@self/query")
+local Id = require("./id")
+local Store = require("./store")
+local Query = require("./query")
 
 export type map<K = string, V = unknown> = { [K]: V }
 export type set<T = unknown> = map<T, true>
