@@ -27,7 +27,16 @@ export type QueryState = {
 	_cache_pivot_size: number?,
 }
 
-local QueryMeta = {}
+export type QueryMeta = {
+	__index: QueryMeta,
+	__iter: (self: QueryState) -> () -> (number?, ...unknown),
+	iter: (self: QueryState) -> () -> (number?, ...unknown),
+	with: (self: QueryState, ...ComponentId) -> QueryState,
+	without: (self: QueryState, ...ComponentId) -> QueryState,
+	has: (self: QueryState, entity: number) -> boolean,
+}
+
+local QueryMeta = {} :: QueryMeta
 QueryMeta.__index = QueryMeta
 
 -- to silence when dense would return nil

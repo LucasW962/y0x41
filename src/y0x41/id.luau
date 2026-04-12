@@ -21,23 +21,17 @@ export type Pair<First = unknown, Second = unknown> = Component<{ first: First, 
 
 type EntityHandle = number
 
-const function require_i64(value: integer?, message: string): integer
-	if value ~= nil then
-		return value
-	end
-
-	Log.trace(message)
-	return 0
-end
-
-
 const function i64_from_number(value: number): integer
 	if not HAS_INTEGER64 then
 		Log.trace("integer64 support is unavailable")
 	end
 
 	const out = integer.create(value)
-	return require_i64(out, "integer64 conversion failed")
+	if out == nil then
+		Log.trace("integer64 conversion failed")
+	end
+
+	return out
 end
 
 const function entity_id(entity: EntityHandle): number
@@ -66,12 +60,15 @@ const function pair(first: Component<unknown> | number, second: Component<unknow
 	const second_number = (second :: unknown) :: number
 
 	if HAS_INTEGER64 then
-		const mark = require_i64(I64_PAIR_MARK, "integer64 pair constants are unavailable")
-		const shift = require_i64(I64_SHIFT_32, "integer64 pair constants are unavailable")
+		const mark = I64_PAIR_MARK
+		const shift = I64_SHIFT_32
+		if mark == nil or shift == nil then
+			Log.trace("integer64 pair constants are unavailable")
+		end
 
 		const first_i64 = i64_from_number(first_number)
 		const second_i64 = i64_from_number(second_number)
-		const encoded = integer.bor(mark, integer.lshift(first_i64, shift), second_i64)
+		const encoded = integer.bor(mark :: integer, integer.lshift(first_i64, shift :: integer), second_i64)
 		return (encoded :: unknown) :: Pair<unknown, unknown>
 	end
 
@@ -99,10 +96,13 @@ end
 const function pair_first<T>(id: Component<T> | number): Component<unknown>
 	const raw = id :: unknown
 	if HAS_INTEGER64 and typeof(raw) == "integer" then
-		const shift = require_i64(I64_SHIFT_32, "integer64 pair constants are unavailable")
-		const mask = require_i64(I64_COMPONENT_MASK, "integer64 pair constants are unavailable")
+		const shift = I64_SHIFT_32
+		const mask = I64_COMPONENT_MASK
+		if shift == nil or mask == nil then
+			Log.trace("integer64 pair constants are unavailable")
+		end
 
-		const first_i64 = integer.band(integer.rshift(raw :: integer, shift), mask)
+		const first_i64 = integer.band(integer.rshift(raw :: integer, shift :: integer), mask :: integer)
 		const first_number = integer.tonumber(first_i64)
 		return (first_number :: unknown) :: Component<unknown>
 	end
@@ -115,9 +115,13 @@ const function pair_second<T>(id: Component<T> | number): Component<unknown>
 	const raw = id :: unknown
 
 	if HAS_INTEGER64 and typeof(raw) == "integer" then
-		const mask = require_i64(I64_COMPONENT_MASK, "integer64 pair constants are unavailable")
+		const mask = I64_COMPONENT_MASK
+		if mask == nil then
+			Log.trace("integer64 pair constants are unavailable")
+            return (nil :: unknown) :: Component<unknown>
+		end
 
-		const second_i64 = integer.band(raw :: integer, mask)
+		const second_i64 = integer.band(raw :: integer, mask :: integer)
 		const second_number = integer.tonumber(second_i64)
 		return (second_number :: unknown) :: Component<unknown>
 	end
